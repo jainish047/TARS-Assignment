@@ -1,129 +1,174 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useRef } from "react";
 
-const SpeechToText = ({ setText }) => {
-    const [isListening, setIsListening] = useState(false);
-    const [isSupported, setIsSupported] = useState(false);
-    const [recognition, setRecognition] = useState(null);
-    const [interimText, setInterimText] = useState(""); // Real-time text
-    const [audioBlob, setAudioBlob] = useState(null); // Stores recorded audio
-    let mediaRecorder = null; // MediaRecorder instance
-    let audioChunks = []; // Stores audio data
+const SpeechToText = () => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [transcript, setTranscript] = useState("");
+  const [error, setError] = useState(null);
 
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (SpeechRecognition) {
-                const recognitionInstance = new SpeechRecognition();
-                recognitionInstance.lang = "en-US";
-                recognitionInstance.continuous = true;
-                recognitionInstance.interimResults = true;
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const audioChunksRef = useRef([]); // Store audio chunks
 
-                recognitionInstance.onresult = (event) => {
-                    let finalTranscript = "";
-                    let interimTranscript = "";
+  const maxDuration = 60000; // 1 minute
 
-                    for (let i = 0; i < event.results.length; i++) {
-                        const transcript = event.results[i][0].transcript;
-                        if (event.results[i].isFinal) {
-                            finalTranscript += transcript + " ";
-                        } else {
-                            interimTranscript += transcript;
-                        }
-                    }
+  const startRecording = async () => {
+    console.log("Starting recording...");
+    setTranscript("");
+    setAudioBlob(null);
+    setError(null);
 
-                    if (finalTranscript) {
-                        setText((prevText) => prevText + finalTranscript);
-                    }
-                    setInterimText(interimTranscript);
-                };
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-                recognitionInstance.onend = () => {
-                    if (isListening) {
-                        setTimeout(() => recognitionInstance.start(), 500);
-                    }
-                };
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-                setRecognition(recognitionInstance);
-                setIsSupported(true);
-            } else {
-                setIsSupported(false);
-            }
+      mediaRecorder.ondataavailable = (event) => {
+        console.log("Data available event fired:", event.data.size);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
         }
-    }, [setText]);
+      };
 
-    // Function to start recording
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+      setIsRecording(true);
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.push(event.data);
-                }
-            };
+      timeoutRef.current = setTimeout(() => {
+        stopRecording();
+      }, maxDuration);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      setError("Error accessing microphone");
+    }
+  };
 
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-                setAudioBlob(audioBlob);
-                audioChunks = []; // Reset chunks
-            };
+  const stopRecording = () => {
+    console.log("Stopping recording...");
+    return new Promise((resolve) => {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
+        mediaRecorderRef.current.onstop = () => {
+          console.log("Recorder stopped. Resolving promise.");
+          if (audioChunksRef.current.length > 0) {
+            const blob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+            console.log("Audio Blob Created:", blob);
+            setAudioBlob(blob);
+            resolve(blob); // Ensure the Promise resolves with the blob
+          } else {
+            console.error("No audio chunks available! Blob is empty.");
+            setError("No audio recorded.");
+            resolve(null);
+          }
 
-            mediaRecorder.start();
-        } catch (error) {
-            console.error("Error starting audio recording:", error);
-        }
-    };
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+            streamRef.current = null;
+          }
+        };
+        mediaRecorderRef.current.stop();
+      } else {
+        console.log("No active recorder found.");
+        resolve(null);
+      }
 
-    // Function to stop recording
-    const stopRecording = () => {
-        if (mediaRecorder) {
-            mediaRecorder.stop();
-        }
-    };
+      setIsRecording(false);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    });
+  };
 
-    // Start both transcription and recording
-    const startListening = async () => {
-        if (!recognition) return;
-        setIsListening(true);
-        recognition.start();
-        await startRecording(); // Start audio recording
-    };
+  const transcribeAudio = async (blob) => {
+    console.log("Transcribing audio...");
+    if (!blob) {
+      console.error("Audio blob is empty!");
+      setError("No audio recorded.");
+      return;
+    }
 
-    // Stop both transcription and recording
-    const stopListening = () => {
-        if (!recognition) return;
-        setIsListening(false);
-        recognition.stop();
-        stopRecording(); // Stop audio recording
-    };
+    console.log("Audio blob:", blob);
+    const formData = new FormData();
+    formData.append("file", blob, "recording.wav");
 
-    return (
-        <div className="p-4 border rounded-lg shadow-md">
-            <button
-                onClick={isListening ? stopListening : startListening}
-                className="bg-blue-500 text-white p-2 rounded border"
-            >
-                {isListening ? "Stop Listening & Recording" : "Start Speaking & Recording"}
-            </button>
-            <p className="mt-2 text-gray-600">{interimText}</p>
+    try {
+      const response = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
 
-            {audioBlob && (
-                <div className="mt-4">
-                    <audio controls src={URL.createObjectURL(audioBlob)}></audio>
-                    <a
-                        href={URL.createObjectURL(audioBlob)}
-                        download="recording.wav"
-                        className="block mt-2 bg-green-500 text-white p-2 rounded"
-                    >
-                        Download Recording
-                    </a>
-                </div>
-            )}
+      if (!response.ok) {
+        throw new Error("Transcription failed");
+      }
+
+      const data = await response.json();
+      console.log("Transcription response:", data);
+      setTranscript(data.transcript);
+    } catch (err) {
+      console.error("Error transcribing audio:", err);
+      setError("Error transcribing audio");
+    }
+  };
+
+  const handleStopAndTranscribe = async () => {
+    console.log("Stopping recording and transcribing...");
+    const blob = await stopRecording();
+    if (blob) {
+      setTimeout(() => {
+        transcribeAudio(blob);
+      }, 500);
+    }
+  };
+
+  return (
+    <div className="p-4 border rounded-lg shadow-md">
+      <div>
+        {!isRecording ? (
+          <button
+            onClick={startRecording}
+            className="bg-blue-500 text-white p-2 rounded"
+          >
+            Start Recording
+          </button>
+        ) : (
+          <button
+            onClick={handleStopAndTranscribe}
+            className="bg-red-500 text-white p-2 rounded"
+          >
+            Stop Recording & Transcribe
+          </button>
+        )}
+      </div>
+
+      {audioBlob && (
+        <div className="mt-4">
+          <h3>Recorded Audio:</h3>
+          <audio controls src={URL.createObjectURL(audioBlob)}></audio>
         </div>
-    );
+      )}
+
+      {transcript && (
+        <div className="mt-4">
+          <h3>Transcript:</h3>
+          <p>{transcript}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-4 text-red-500">
+          <p>{error}</p>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default SpeechToText;
