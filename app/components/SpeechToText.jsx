@@ -58,7 +58,9 @@ const SpeechToText = () => {
         mediaRecorderRef.current.onstop = () => {
           console.log("Recorder stopped. Resolving promise.");
           if (audioChunksRef.current.length > 0) {
-            const blob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+            const blob = new Blob(audioChunksRef.current, {
+              type: "audio/wav",
+            });
             console.log("Audio Blob Created:", blob);
             setAudioBlob(blob);
             resolve(blob); // Ensure the Promise resolves with the blob
@@ -128,39 +130,62 @@ const SpeechToText = () => {
     }
   };
 
+  const handleCancelRecording = async () => {
+    console.log("Canceling recording...");
+    await stopRecording(); // Ensure recording stops
+    audioChunksRef.current = []; // Clear recorded audio chunks
+    setAudioBlob(null);
+    setTranscript("");
+    setError(null);
+  };
+  
+
   return (
     <div className="p-4 border rounded-lg shadow-md">
-      <div>
-        {!isRecording ? (
-          <button
-            onClick={startRecording}
-            className="bg-blue-500 text-white p-2 rounded"
-          >
-            Start Recording
-          </button>
-        ) : (
-          <button
-            onClick={handleStopAndTranscribe}
-            className="bg-red-500 text-white p-2 rounded"
-          >
-            Stop Recording & Transcribe
-          </button>
+      <div className="flex gap-4">
+        <div className="flex items-center">
+          {!isRecording ? (
+            <button
+              onClick={startRecording}
+              className="bg-blue-500 text-white p-2 rounded"
+            >
+              Start Recording
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleStopAndTranscribe}
+                className="bg-red-500 text-white p-2 rounded"
+              >
+                Stop Recording & Transcribe
+              </button>
+              <button
+                onClick={handleCancelRecording}
+                className="bg-gray-500 text-white p-2 rounded ml-2"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+
+        {audioBlob && (
+          <div className="">
+            <h3>Recorded Audio:</h3>
+            <audio controls src={URL.createObjectURL(audioBlob)}></audio>
+          </div>
         )}
       </div>
 
-      {audioBlob && (
-        <div className="mt-4">
-          <h3>Recorded Audio:</h3>
-          <audio controls src={URL.createObjectURL(audioBlob)}></audio>
-        </div>
-      )}
-
-      {transcript && (
-        <div className="mt-4">
-          <h3>Transcript:</h3>
-          <p>{transcript}</p>
-        </div>
-      )}
+      {audioBlob &&
+        (transcript ? (
+          <div className="mt-4">
+            <h3>Transcript:</h3>
+            <p>{transcript}</p>
+          </div>
+        ) : (
+          <h3 className="mt-4">Generating Transcribe...</h3>
+        ))}
 
       {error && (
         <div className="mt-4 text-red-500">

@@ -22,9 +22,10 @@ export default function LoginSignUpModal({ setUser, setIsOpen }) {
         });
 
         const data = await res.json();
+        console.log("data->", data)
         if (res.ok) {
             setMessageColour("text-green-500");
-            setUser({ userName });
+            setUser(data.user);
             document.cookie = `token=${data.token}; path=/`;
             setIsOpen(false); // ✅ Close modal
             router.refresh(); // ✅ Refresh page content

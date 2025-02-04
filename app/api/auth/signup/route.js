@@ -31,7 +31,7 @@ export async function POST(req) {
     path: "/",
   });
 
-  return new Response(JSON.stringify({ message: "Login successful" }), {
+  return new Response(JSON.stringify({ message: "Login successful", user:{userName:userName} }), {
     status: 200,
     headers: { "Set-Cookie": cookie },
   });

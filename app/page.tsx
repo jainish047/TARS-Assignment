@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/app/context/usercontext";
 import SpeechToText from "@/app/components/SpeechToText";
-import LoginSignupModal from "./components/LoginSignupModal";
+// import LoginSignupModal from "./components/LoginSignupModal";
 import Header from "./components/Header";
+import Link from "next/link";
+import React from "react";
+import Input from "./components/Input";
 
 interface Note {
   _id: string;
@@ -17,21 +20,27 @@ export default function HomePage() {
   const { user, setUser } = useUser();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [notes, setNotes] = useState<Note[]>([]);
-  const [text, setText] = useState<string>("");
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(true); // ✅ Open modal initially
+  const [isLoading, setIsLoading] = useState<Boolean>(false);
+
+  // const [isRecording, setIsRecording] = useState(false);
+  // const [audioBlob, setAudioBlob] = useState(null);
+  // const [transcript, setTranscript] = useState("");
+  // const [error, setError] = useState(null);
 
   console.log("notes->", notes);
 
   useEffect(() => {
     const checkAuth = async () => {
+      setIsLoading(true);
       const res = await fetch("/api/auth/check");
       if (res.ok) {
         const data = await res.json();
+        console.log("data->", data);
         setUser(data.user);
         setIsAuthenticated(true);
-        setIsModalOpen(false); // ✅ Close modal if authenticated
         fetchNotes(); // ✅ Fetch notes after login
       }
+      setIsLoading(false);
     };
     checkAuth();
   }, []);
@@ -48,59 +57,52 @@ export default function HomePage() {
     }
   };
 
-  const addNoteToBackend = async () => {
-    try {
-      const response = await fetch("/api/notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
-      });
-      const data = await response.json();
-      setNotes((prevNotes) => [...prevNotes, data.note]);
-      setText("");
-    } catch (error) {
-      console.error("Error adding note:", error);
-    }
-  };
-
-  return (
-    <main className="max-w-2xl mx-auto p-4">
-      {isModalOpen && (
-        <LoginSignupModal setUser={setUser} setIsOpen={setIsModalOpen} />
-      )}{" "}
+  return isLoading ? (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div>
+    </div>
+  ) : isAuthenticated ? (
+    <main className="h-screen mx-auto p-4">
       {/* ✅ Control modal */}
-      <Header/>
-      <h1 className="text-2xl font-bold">Welcome, {user?.email}</h1>
-      {/* User Notes Cards */}
-      <div className="my-4">
-        <h2 className="text-xl font-semibold">Your Notes</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-          {notes.map((note) => (
-            <div key={note._id} className="border p-4 rounded-lg shadow-md">
-              <p>{note.text}</p>
-            </div>
-          ))}
+      <Header />
+      <div className="p-4">
+        <h1 className="text-2xl font-bold">Welcome, {user?.userName}</h1>
+        {/* User Notes Cards */}
+        <div className="my-4">
+          <h2 className="text-xl font-semibold">Your Notes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            {notes.map((note) => (
+              <div key={note._id} className="border p-4 rounded-lg shadow-md">
+                <p>{note.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-      {/* Speech-to-Text Input */}
-      <div className="my-6">
-        <h2 className="text-xl font-semibold">Add a Note via Speech</h2>
-        <SpeechToText setText={setText} />
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="w-full p-2 border rounded mb-4"
-          placeholder="Type or speak to add a note"
-        />
-        <button
-          onClick={addNoteToBackend}
-          className="bg-green-500 text-white p-2 rounded border"
-        >
-          Submit Note
-        </button>
+      {/* Input */}
+      {/* Input - Centered */}
+      <div className="sticky bottom-0 bg-white p-4 shadow-lg flex justify-center max-w-5xl mx-auto">
+        <Input />
       </div>
     </main>
+  ) : (
+    <div className="h-screen flex justify-center items-center">
+      <h1>
+        Please{" "}
+        <Link
+          href="/auth?option=login"
+          className="text-blue-600 underline text-lg"
+        >
+          Login
+        </Link>{" "}
+        /{" "}
+        <Link
+          href="/auth?option=signin"
+          className="text-blue-600 underline text-lg"
+        >
+          Signin
+        </Link>
+      </h1>
+    </div>
   );
 }

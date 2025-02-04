@@ -12,6 +12,7 @@ export async function POST(req) {
     if (!user) {
         return new Response(JSON.stringify({ message: "Invalid credentials" }), { status: 401 });
     }
+    console.log("user->", user)
 
     const isValid = await verifyPassword(password, user.password);
     if (!isValid) {
@@ -19,8 +20,8 @@ export async function POST(req) {
     }
 
     // Generate JWT Token
-    const token = generateToken(user);
+    const token = generateToken({ userName: user.userName });
     const cookie = serialize("token", token, { httpOnly: true, secure: true, path: "/" });
 
-    return new Response(JSON.stringify({ message: "Login successful" }), { status: 200, headers: { "Set-Cookie": cookie } });
+    return new Response(JSON.stringify({ message: "Login successful", user:{userName} }), { status: 200, headers: { "Set-Cookie": cookie } });
 }

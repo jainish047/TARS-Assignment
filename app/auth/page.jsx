@@ -1,16 +1,17 @@
 "use client";
-
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useUser } from "@/app/context/usercontext";
+import { useUser } from "../context/usercontext";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AuthPage() {
-    const router = useRouter();
-    const { setUser } = useUser();
-    const [isLogin, setIsLogin] = useState(true); // Toggle between Login & Sign-Up
-    const [email, setEmail] = useState("");
+export default function LoginSignUpModal() {
+    const searchparams = useSearchParams();
+
+    const [isLogin, setIsLogin] = useState((searchparams.get("option")==="login")?true:false);
+    const [userName, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+    const router = useRouter();
+    const [messageColour, setMessageColour] = useState("");
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -19,55 +20,59 @@ export default function AuthPage() {
         const res = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ userName, password }),
         });
 
         const data = await res.json();
+        console.log("data->", data)
         if (res.ok) {
-            setUser({ email });
-            router.push("/"); // Redirect to home page
+            setMessageColour("text-green-500");
+            document.cookie = `token=${data.token}; path=/`;
+            router.push("/")
         } else {
-            setMessage(data.message);
+            setMessageColour("text-red-500");
         }
+        setMessage(data.message);
     };
 
     return (
-        <div className="max-w-md mx-auto mt-10 p-6 border rounded shadow">
-            <h2 className="text-2xl font-bold text-center">{isLogin ? "Login" : "Sign Up"}</h2>
-            
-            <form onSubmit={handleAuth} className="mt-4 flex flex-col gap-2">
-                <input
-                    type="email"
-                    placeholder="Email"
-                    className="border p-2 rounded"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    className="border p-2 rounded"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                />
-                <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-                    {isLogin ? "Login" : "Sign Up"}
-                </button>
-            </form>
-            
-            <p className="text-center mt-2 text-red-500">{message}</p>
-            
-            <p className="text-center mt-2">
-                {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-                <button
-                    onClick={() => setIsLogin(!isLogin)}
-                    className="text-blue-500 underline"
-                >
-                    {isLogin ? "Sign Up" : "Login"}
-                </button>
-            </p>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+                <h2 className="text-2xl font-bold text-center mb-4">{isLogin ? "Login" : "Sign Up"}</h2>
+                <form onSubmit={handleAuth} className="flex flex-col gap-4">
+                    <input
+                        type="text"
+                        placeholder="Username"
+                        className="border p-2 rounded"
+                        value={userName}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                    />
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        className="border p-2 rounded"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                    <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+                        {isLogin ? "Login" : "Sign Up"}
+                    </button>
+                </form>
+                <p className={`text-center ${messageColour} mt-2`}>{message}</p>
+                <div className="text-center mt-4">
+                    <p>
+                        {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+                        <button
+                            onClick={() => setIsLogin(!isLogin)}
+                            className="text-blue-500 underline"
+                        >
+                            {isLogin ? "Sign Up" : "Login"}
+                        </button>
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }

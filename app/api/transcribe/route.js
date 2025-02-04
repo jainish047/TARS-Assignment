@@ -69,12 +69,20 @@ async function uploadFile(file) {
     body: fileData,
   });
 
-  const data = await response.json();
-  if (!data.upload_url) {
-    throw new Error("Failed to upload file to AssemblyAI.");
+  const textResponse = await response.text(); // Read raw response
+  console.log("🔹 AssemblyAI upload response:", textResponse);
+
+  try {
+    const data = JSON.parse(textResponse);
+    if (!data.upload_url) {
+      throw new Error("Failed to upload file to AssemblyAI.");
+    }
+    return data.upload_url;
+  } catch (error) {
+    throw new Error("Invalid JSON response from AssemblyAI: " + textResponse);
   }
-  return data.upload_url;
 }
+
 
 /**
  * Requests a transcription from AssemblyAI for the given audio URL.
