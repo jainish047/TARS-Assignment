@@ -2,10 +2,17 @@
 
 import React, { useState, useRef } from "react";
 
-const SpeechToText = () => {
+const SpeechToText = ({
+  transcript,
+  setTranscript,
+  audioBlob,
+  setAudioBlob,
+  audioUrl,
+  setAudioUrl,
+}) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState(null);
-  const [transcript, setTranscript] = useState("");
+  // const [audioBlob, setAudioBlob] = useState(null);
+  // const [transcript, setTranscript] = useState("");
   const [error, setError] = useState(null);
 
   const mediaRecorderRef = useRef(null);
@@ -20,6 +27,7 @@ const SpeechToText = () => {
     setTranscript("");
     setAudioBlob(null);
     setError(null);
+    setAudioUrl(null);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -113,6 +121,7 @@ const SpeechToText = () => {
 
       const data = await response.json();
       console.log("Transcription response:", data);
+      setAudioUrl(data.cloudinaryUrl);
       setTranscript(data.transcript);
     } catch (err) {
       console.error("Error transcribing audio:", err);
@@ -138,7 +147,6 @@ const SpeechToText = () => {
     setTranscript("");
     setError(null);
   };
-  
 
   return (
     <div className="p-4 border rounded-lg shadow-md">
@@ -172,7 +180,10 @@ const SpeechToText = () => {
         {audioBlob && (
           <div className="">
             <h3>Recorded Audio:</h3>
-            <audio controls src={URL.createObjectURL(audioBlob)}></audio>
+            <audio
+              controls
+              src={audioUrl || URL.createObjectURL(audioBlob)}
+            ></audio>
           </div>
         )}
       </div>

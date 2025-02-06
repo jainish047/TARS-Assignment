@@ -1,9 +1,16 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, model, models } from "mongoose";
 
-const NoteSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    text: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-});
+const NoteSchema = new Schema(
+  {
+    userName: { type: String, required: true },
+    title: { type: String, required: true },
+    text: { type: String },
+    transcript: { type: String },
+    audioUrl: { type: String }, // Store Cloudinary URL
+    imageUrls: { type: [String] }, // Corrected array syntax
+    favourite: { type: Boolean, default: false }, // Add default value here
+  },
+  { timestamps: true }
+); // Mongoose handles createdAt/updatedAt
 
-export default mongoose.models.Note || mongoose.model("Note", NoteSchema);
+export const Note = models.Note || model("Note", NoteSchema);

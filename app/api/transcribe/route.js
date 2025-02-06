@@ -2,6 +2,14 @@ import { IncomingForm } from "formidable";
 import fs from "fs/promises"; // Using promises API for convenience
 import { NextResponse } from "next/server";
 import { Readable } from "stream";
+import cloudinary from "cloudinary";
+
+// Configure Cloudinary with your credentials
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Disable Next.js's built-in body parser.
 export const config = {
@@ -53,6 +61,45 @@ async function parseForm(req) {
 }
 
 /**
+ * Uploads the file to Cloudinary and returns the file's URL.
+ */
+async function uploadFileToCloudinary(file) {
+  if (!file || !file.filepath) {
+    throw new Error("Invalid file received");
+  }
+
+  const fileData = await fs.readFile(file.filepath);
+
+  return new Promise((resolve, reject) => {
+    // Log MIME type of the uploaded file to check if it's correct
+    console.log("File MIME type:", file.mimetype);
+
+    // Extract file extension from original filename
+    const fileExt = file.originalFilename.split(".").pop();
+
+    cloudinary.uploader
+      .upload_stream(
+        {
+          resource_type: "video", // Changed from "raw" to "video" for audio support
+          public_id: `audio/${Date.now()}`, // Optional: Unique identifier for Cloudinary storage
+          format: fileExt // Explicitly set the file format
+        },
+        (error, result) => {
+          if (error) {
+            // Log the full error for better debugging
+            console.error("Cloudinary upload error:", error);
+            reject(error);
+          } else {
+            console.log("Successfully uploaded to Cloudinary");
+            resolve(result.url); // Return the Cloudinary URL
+          }
+        }
+      )
+      .end(fileData); // Upload the file to Cloudinary
+  });
+}
+
+/**
  * Uploads the file to AssemblyAI and returns the file's upload URL.
  */
 async function uploadFile(file) {
@@ -82,7 +129,6 @@ async function uploadFile(file) {
     throw new Error("Invalid JSON response from AssemblyAI: " + textResponse);
   }
 }
-
 
 /**
  * Requests a transcription from AssemblyAI for the given audio URL.
@@ -160,6 +206,10 @@ export async function POST(request) {
     const transcript = await pollTranscription(transcriptId);
     console.log("✅ Transcription completed.");
 
+    // Step 5: Upload the file to Cloudinary and get the URL
+    const cloudinaryUrl = await uploadFileToCloudinary(uploadedFile);
+    console.log("✅ Uploaded file URL (Cloudinary):", cloudinaryUrl);
+
     // Delete the temporary file.
     try {
       await fs.unlink(uploadedFile.filepath);
@@ -167,7 +217,8 @@ export async function POST(request) {
       console.log("⚠️ Error deleting temp file:", err);
     }
 
-    return NextResponse.json({ transcript });
+    // Return both the transcription text and Cloudinary URL
+    return NextResponse.json({ transcript, cloudinaryUrl });
   } catch (error) {
     console.log("❌ Error during transcription:", error);
     return NextResponse.json(

@@ -1,4 +1,4 @@
-import connectDB from "@/lib/db";
+import {connectDB} from "@/lib/db";
 import User from "@/models/User";
 import { hashPassword } from "@/lib/auth";
 import { generateToken } from "@/lib/auth";
@@ -24,7 +24,7 @@ export async function POST(req) {
   await newUser.save();
 
   // Generate JWT Token
-  const token = generateToken(userName);
+  const token = generateToken({userName});
   const cookie = serialize("token", token, {
     httpOnly: true,
     secure: true,

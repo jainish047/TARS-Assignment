@@ -1,4 +1,4 @@
-import connectDB from "@/lib/db";
+import {connectDB} from "@/lib/db";
 import jwt from "jsonwebtoken";
 
 export async function GET(req) {
@@ -6,7 +6,7 @@ export async function GET(req) {
     await connectDB();
 
     const token = req.cookies.get("token")?.value;
-    console.log("token:", token)
+    console.log("token in check:", token)
     if (!token) {
         return new Response(JSON.stringify({ authenticated: false }), { status: 401 });
     }

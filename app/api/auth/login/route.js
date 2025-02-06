@@ -1,4 +1,4 @@
-import connectDB from "@/lib/db";
+import {connectDB} from "@/lib/db";
 import User from "@/models/User";
 import { verifyPassword, generateToken } from "@/lib/auth";
 import { serialize } from "cookie";

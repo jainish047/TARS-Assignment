@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useUser } from "../context/usercontext";
+import { useUser } from "../context/UserContext";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginSignUpModal() {
@@ -13,6 +13,8 @@ export default function LoginSignUpModal() {
     const router = useRouter();
     const [messageColour, setMessageColour] = useState("");
 
+    const { user, setUser } = useUser(); // Get setUser function from user context
+
     const handleAuth = async (e) => {
         e.preventDefault();
         const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
@@ -24,15 +26,24 @@ export default function LoginSignUpModal() {
         });
 
         const data = await res.json();
-        console.log("data->", data)
+        console.log("data in logsign->", data)
         if (res.ok) {
+            console.log("in logsign verified")
+            // On success, update the context with user data and set the cookie
             setMessageColour("text-green-500");
-            document.cookie = `token=${data.token}; path=/`;
-            router.push("/")
+            setUser(data.user); // Set the user in context
+            console.log("in loginsignup user->", user, data.user)
+            document.cookie = `token=${data.token}; path=/; HttpOnly; SameSite=Strict`; // Set the token in the cookie
+
+            // Optionally, you can redirect or refresh the page
+            // If you want to refresh the page content
+            router.push("/"); // Navigate to the home page
         } else {
+            console.log("in logsign failed")
+            // On failure, show an error message
             setMessageColour("text-red-500");
+            setMessage(data.message || "An error occurred. Please try again.");
         }
-        setMessage(data.message);
     };
 
     return (
