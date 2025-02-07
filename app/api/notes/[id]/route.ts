@@ -7,21 +7,36 @@ import jwt from "jsonwebtoken";
 import { TokenPayload } from "@/utils/type";
 import { cookies } from "next/headers";
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+
+export async function DELETE(
+  req: Request,
+  context: { params: { id: string } }
+) {
   await connectDB();
 
-  const note = await Note.findById(params.id);
-  if (!note) return NextResponse.json({ error: "Note not found" }, { status: 404 });
+  const { id } = context.params; // Use context.params instead of params
+
+  const note = await Note.findById(id);
+  if (!note) {
+    return NextResponse.json({ error: "Note not found" }, { status: 404 });
+  }
 
   // Delete from Cloudinary
   if (note.audioUrl) {
     const publicId = note.audioUrl.split("/").pop()?.split(".")[0]; // Extract Cloudinary ID
-    await cloudinary.v2.uploader.destroy(`audio/${publicId}`, { resource_type: "video" });
+    await cloudinary.v2.uploader.destroy(publicId, { resource_type: "video" });
   }
 
-  await Note.findByIdAndDelete(params.id);
+  await Note.findByIdAndDelete(id);
   return NextResponse.json({ message: "Note deleted" });
 }
+
 
 export const config = {
   api: {
@@ -29,14 +44,17 @@ export const config = {
   },
 };
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: Request,
+  context: { params: { id: string } }
+) {
   try {
     console.log("in notes-put");
     await connectDB();
     console.log("db connected");
 
-    // Get the note ID from URL params
-    const { id } = params;
+    // Ensure params are awaited correctly
+    const id = await context.params.id; // Await before using
 
     const formData = await req.formData();
     const title = formData.get("title") as string;
