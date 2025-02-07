@@ -34,8 +34,10 @@ const NoteCard: React.FC<NoteCardProps> = ({
           : "Unknown Date"}
       </div>
       <div className="flex justify-between">
+        <div className="flex items-center gap-2">
         <h3 className="font-semibold text-lg mb-2">{note.title}</h3>
         {note.audioUrl && <Volume2 className="text-blue-500 mb-2" />}{" "}
+        </div>
         {/* Audio icon if available */}
         <Star
           className={`cursor-pointer stroke-current ${

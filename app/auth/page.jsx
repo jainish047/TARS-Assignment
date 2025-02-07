@@ -76,7 +76,7 @@ export default function LoginSignUpModal() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded">
+          <button type="submit" className="bg-blue-500 text-white p-2 rounded justify-center">
             {loading ? (
               <Loader2 className="animate-spin w-5 h-5" />
             ) : isLogin ? (

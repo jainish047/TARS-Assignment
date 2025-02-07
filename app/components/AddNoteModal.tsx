@@ -5,6 +5,7 @@ import { uploadToCloudinary } from "@/utils/cloudinary";
 import { X } from "lucide-react";
 import SpeechToText from "./SpeechToText.jsx";
 import { Note } from "@/app/context/NotesContext";
+import { Loader2 } from "lucide-react";
 
 interface AddNoteModalProps {
   isOpen: boolean;
@@ -25,7 +26,8 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"audio" | "image">("audio");
-  const [favourite, setFavourite] = useState<boolean>(false)
+  const [favourite, setFavourite] = useState<boolean>(false);
+  const [submiting, setSubmiting] = useState<Boolean>(false);
   const { addNote, updateNote } = useNotes();
 
   console.log("note editing->", note, note?.title);
@@ -35,7 +37,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
     setTranscript(note?.transcript || "");
     setAudioUrl(note?.audioUrl || null);
     setImageUrls(note?.imageUrls || []);
-    setFavourite(note?.favourite || false)
+    setFavourite(note?.favourite || false);
   }, [note]); // Runs every time `note` changes
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,8 +57,17 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
       alert("Please enter a title");
       return;
     }
+    setSubmiting(true);
+
     if (!note) {
-      await addNote(title, text, false, transcript, audioUrl || undefined, imageUrls); // Pass imageFiles directly
+      await addNote(
+        title,
+        text,
+        false,
+        transcript,
+        audioUrl || undefined,
+        imageUrls
+      ); // Pass imageFiles directly
     } else {
       await updateNote(
         note._id,
@@ -74,6 +85,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
     setImageFiles([]);
     setImageUrls([]); // Clear image files and URLs after submission
     onClose();
+    setSubmiting(false);
   };
 
   return isOpen ? (
@@ -93,7 +105,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
         />
 
         <textarea
-        rows={8}
+          rows={8}
           placeholder="Type your note here..."
           className="w-full p-2 border rounded mb-2"
           value={text}
@@ -165,9 +177,9 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
 
         <button
           onClick={handleSubmit}
-          className="w-full bg-blue-500 text-white p-2 rounded mt-2"
+          className="w-full bg-blue-500 text-white p-2 rounded mt-2 flex justify-center"
         >
-          Submit
+          {submiting ? <Loader2 className="animate-spin w-5 h-5" /> : "Submit"}
         </button>
       </div>
     </div>

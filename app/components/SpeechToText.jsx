@@ -14,6 +14,7 @@ const SpeechToText = ({
   // const [audioBlob, setAudioBlob] = useState(null);
   // const [transcript, setTranscript] = useState("");
   const [error, setError] = useState(null);
+  const [responded, setResponded] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
@@ -24,6 +25,7 @@ const SpeechToText = ({
 
   const startRecording = async () => {
     console.log("Starting recording...");
+    setResponded(false);
     setTranscript("");
     setAudioBlob(null);
     setError(null);
@@ -123,6 +125,7 @@ const SpeechToText = ({
       console.log("Transcription response:", data);
       setAudioUrl(data.cloudinaryUrl);
       setTranscript(data.transcript);
+      setResponded(true);
     } catch (err) {
       console.error("Error transcribing audio:", err);
       setError("Error transcribing audio");
@@ -189,13 +192,17 @@ const SpeechToText = ({
       </div>
 
       {audioBlob &&
-        (transcript ? (
-          <div className="mt-4">
-            <h3>Transcript:</h3>
-            <p>{transcript}</p>
-          </div>
+        (responded ? (
+          transcript ? (
+            <div className="mt-4">
+              <h3>Transcript:</h3>
+              <p>{transcript}</p>
+            </div>
+          ) : (
+            <h3 className="mt-4">No transcript</h3>
+          )
         ) : (
-          <h3 className="mt-4">Generating Transcribe...</h3>
+          <h3 className="mt-4">Generating Transcript...</h3>
         ))}
 
       {error && (
