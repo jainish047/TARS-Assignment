@@ -34,7 +34,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="mx-auto p-6 w-96 md:w-screen">
+    <main className="mx-auto p-3 w-screen">
       {/* Header */}
       <Header showfavourite={showfavourite} setShowFavourite={(val:boolean)=>{setShowFavourite(!!val)}} />
 

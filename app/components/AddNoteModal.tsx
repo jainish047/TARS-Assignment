@@ -78,7 +78,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
 
   return isOpen ? (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="max-h-[90vh] bg-white p-6 rounded-lg shadow-lg w-2/3 overflow-y-auto">
+      <div className="max-h-[90vh] bg-white p-6 rounded-lg shadow-lg w-full md:w-2/3 overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Add Note</h2>
           <X className="cursor-pointer" onClick={onClose} />
@@ -109,7 +109,7 @@ const AddNoteModal: React.FC<AddNoteModalProps> = ({
             }`}
             onClick={() => setActiveTab("audio")}
           >
-            Audio/Transcribe
+            Audio{" / "}Transcribe
           </button>
           <button
             className={`w-1/2 p-2 ${

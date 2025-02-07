@@ -31,7 +31,9 @@ export default function RootLayout({
         className={`h-screen ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <UserProvider>
-          <NotesProvider>{children}</NotesProvider>
+          <NotesProvider>
+            {children}
+          </NotesProvider>
         </UserProvider>
       </body>
     </html>

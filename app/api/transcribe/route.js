@@ -2,7 +2,8 @@ import { IncomingForm } from "formidable";
 import fs from "fs/promises"; // Using promises API for convenience
 import { NextResponse } from "next/server";
 import { Readable } from "stream";
-import cloudinary from "cloudinary";
+// import cloudinary from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 
 // Configure Cloudinary with your credentials
 cloudinary.config({
@@ -82,7 +83,7 @@ async function uploadFileToCloudinary(file) {
         {
           resource_type: "video", // Changed from "raw" to "video" for audio support
           public_id: `audio/${Date.now()}`, // Optional: Unique identifier for Cloudinary storage
-          format: fileExt // Explicitly set the file format
+          format: fileExt, // Explicitly set the file format
         },
         (error, result) => {
           if (error) {
@@ -96,6 +97,19 @@ async function uploadFileToCloudinary(file) {
         }
       )
       .end(fileData); // Upload the file to Cloudinary
+
+    // return new Promise((resolve, reject) => {
+    //   cloudinary.uploader
+    //     .upload(file, { resource_type: "video" })
+    //     .then(async (result) => {
+    //       if (result.secure_url) {
+    //         resolve(file);
+    //       }
+    //     })
+    //     .catch((error) => {
+    //       reject(error);
+    //     });
+    // });
   });
 }
 
@@ -205,9 +219,19 @@ export async function POST(request) {
     // Step 4: Poll AssemblyAI until transcription is complete.
     const transcript = await pollTranscription(transcriptId);
     console.log("✅ Transcription completed.");
+    console.log("transcript: ", transcript);
 
     // Step 5: Upload the file to Cloudinary and get the URL
-    const cloudinaryUrl = await uploadFileToCloudinary(uploadedFile);
+    // const cloudinaryUrl = await uploadFileToCloudinary(uploadedFile);
+    // console.log("✅ Uploaded file URL (Cloudinary):", cloudinaryUrl);
+
+    // Step 5: Upload the file to Cloudinary and get the URL
+    const cloudinaryResponse = await cloudinary.uploader.upload(uploadedFile.filepath, {
+      resource_type: "video", // Required for audio files
+      folder: "audio_uploads", // Optional: Organize files in a specific folder
+    });
+
+    const cloudinaryUrl = cloudinaryResponse.secure_url;
     console.log("✅ Uploaded file URL (Cloudinary):", cloudinaryUrl);
 
     // Delete the temporary file.

@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { uploadToCloudinary } from "@/utils/cloudinary";
 import { useUser } from "./UserContext";
 
+
 export interface Note {
   _id: string;
   title: string;
@@ -16,6 +17,7 @@ export interface Note {
 
 interface NotesContextType {
   notes: Note[];
+  setNotes: React.Dispatch<React.SetStateAction<Note[]>>; // ✅ Correct Type
   addNote: (
     title: string,
     text: string,
@@ -45,6 +47,10 @@ export const NotesProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const fetchNotes = async () => {
+      if (!user) {
+        setNotes([]); // Clear notes on logout
+        return;
+      }
       try {
         const response = await fetch("/api/notes");
         const data = await response.json();
@@ -52,7 +58,8 @@ export const NotesProvider = ({ children }: { children: React.ReactNode }) => {
           setNotes(data.notes);
           console.log("notes->", data.notes);
         } else {
-          console.error("Failed to fetch notes.", data);
+          // console.error("Failed to fetch notes.", data);
+          console.log("Failed to fetch notes.", data);
         }
       } catch (error) {
         console.error("Error fetching notes:", error);
@@ -164,11 +171,13 @@ export const NotesProvider = ({ children }: { children: React.ReactNode }) => {
     const responce = await fetch(`/api/notes/favourite/${id}`, {
       method: "POST",
     });
-    const data = await responce.json()
+    const data = await responce.json();
     if (responce.ok) {
       console.log(id, " added to favourite");
       setNotes((prev) =>
-        prev.map((note) => note._id === id ? {...note, favourite:true} : note)
+        prev.map((note) =>
+          note._id === id ? { ...note, favourite: true } : note
+        )
       );
     } else {
       console.log(id, " adding to favourite failed");
@@ -179,11 +188,13 @@ export const NotesProvider = ({ children }: { children: React.ReactNode }) => {
     const responce = await fetch(`/api/notes/favourite/${id}`, {
       method: "DELETE",
     });
-    const data=await responce.json()
+    const data = await responce.json();
     if (responce.ok) {
       console.log(id, " added to favourite");
       setNotes((prev) =>
-        prev.map((note) => note._id === id ? {...note, favourite:false} : note)
+        prev.map((note) =>
+          note._id === id ? { ...note, favourite: false } : note
+        )
       );
     } else {
       console.log(id, " adding to favourite failed");
@@ -194,6 +205,7 @@ export const NotesProvider = ({ children }: { children: React.ReactNode }) => {
     <NotesContext.Provider
       value={{
         notes,
+        setNotes,
         addNote,
         deleteNote,
         updateNote,
